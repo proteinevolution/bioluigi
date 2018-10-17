@@ -2,6 +2,7 @@ import luigi
 import enum
 from os.path import abspath, islink, isfile, exists
 from .util import value_error_if
+from Bio import SeqIO
 
 
 class FileExistence(enum.Enum):
@@ -18,6 +19,7 @@ class FileParameter(luigi.Parameter):
     def __init__(self, existence: FileExistence, *args, **kwargs):
         super(FileParameter, self).__init__(*args, **kwargs)
         self.existence = existence
+        self.absolute_path = None
 
     def parse(self, x):
         absolute_path = abspath(x)
@@ -31,4 +33,25 @@ class FileParameter(luigi.Parameter):
 
         value_error_if(self.existence is FileExistence.NON_EXISTING and exists(absolute_path),
                        "File {} exists, but it must not!".format(absolute_path))
-        return absolute_path
+        self.absolute_path = absolute_path
+        return self.absolute_path
+
+
+class SequenceFileParameter(FileParameter):
+    """
+    Specialization of the File Parameter where the value refers to files that contain
+    sequences. Such a file must always exist, otherwise the parameter cannot be instantiated.
+
+    Currently, the file must be encoded as FASTA file in the sense of BiopPythons 'fasta' format
+    """
+    def __init__(self, *args, **kwargs):
+        super(SequenceFileParameter, self).__init__(existence = FileExistence.EXISTING, *args, **kwargs)
+
+    def number_of_sequences(self):
+        # Just count the number of sequences via SeqIO
+        result = 0
+        for _ in SeqIO.parse(self.absolute_path, 'fasta'):
+            result += 1
+        return result
+
+
