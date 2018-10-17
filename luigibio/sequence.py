@@ -20,4 +20,5 @@ class SequenceFileStats:
         n_seqs = 0
         for record in SeqIO.parse(file_path, file_format):
             n_seqs += 1
-            n_chars += len(record.seq) + len(record.id)
+            n_chars += (len(record.seq) + len(record.id))
+        return SequenceFileStats(n_chars, n_seqs)

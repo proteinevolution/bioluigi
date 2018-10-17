@@ -2,7 +2,8 @@ import luigi
 import enum
 from os.path import abspath, islink, isfile, exists
 from .util import value_error_if
-from Bio import SeqIO
+from .sequence import SequenceFileStats
+from typing import Callable
 
 
 class FileExistence(enum.Enum):
@@ -44,14 +45,19 @@ class SequenceFileParameter(FileParameter):
 
     Currently, the file must be encoded as FASTA file in the sense of BiopPythons 'fasta' format
     """
-    def __init__(self, *args, **kwargs):
-        super(SequenceFileParameter, self).__init__(existence = FileExistence.EXISTING, *args, **kwargs)
+    def __init__(self, predicate: Callable[[SequenceFileStats], bool], *args, **kwargs):
+        super(SequenceFileParameter, self).__init__(existence=FileExistence.EXISTING, *args, **kwargs)
+        self.predicate = predicate
 
-    def number_of_sequences(self):
-        # Just count the number of sequences via SeqIO
-        result = 0
-        for _ in SeqIO.parse(self.absolute_path, 'fasta'):
-            result += 1
-        return result
+    def stats(self) -> SequenceFileStats:
+        return SequenceFileStats.from_file(self.absolute_path, 'fasta')
+    
+    def parse(self, x):
+        # Call Super to get the absolute file path, super will set the absolute file path
+        absolute_path = super(SequenceFileParameter, self).parse(x)
 
-
+        # If the predicate fails, we have to raise Value Error
+        value_error_if(not self.predicate(self.stats()),
+                       'Sequence File {} does not satisfy the Predicate for the Sequence File stats.'.format(
+                           self.absolute_path))
+        return absolute_path
