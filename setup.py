@@ -6,7 +6,10 @@ requires = [
 ]
 
 setup(
-    name='Extensions for Luigi based on Biopython',
+    author='Lukas Zimmermann',
+    author_email='luk.zim91@gmail.com',
+    name='luigibio',
+    description='Extensions for Spotify\'s luigi based on BioPython',
     version='0.1',
     install_requires=requires,
     packages=['luigibio']
